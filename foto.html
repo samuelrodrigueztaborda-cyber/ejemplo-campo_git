@@ -2,858 +2,1397 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Videojuego 3D - NPC en Estadio de Fútbol (Three.js)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arcade Soccer 5v5 - Retro Champions</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
         }
         body {
-            overflow: hidden;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: #030712;
+            background-color: #050b14;
             color: #ffffff;
-        }
-        #webgl-container {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
             width: 100vw;
             height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1280px;
+            max-height: 720px;
+            background: #111;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
             display: block;
+            width: 100%;
+            height: 100%;
+            background: #2e7d32;
         }
 
-        /* LEYENDA HUD DE CONTROLES DEL JUGADOR */
-        .hud-panel {
+        /* OVERLAYS Y MENÚS */
+        .overlay-screen {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(15, 23, 42, 0.88);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 14px;
-            padding: 16px 20px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-            width: 310px;
-            z-index: 10;
-            pointer-events: none;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 11, 20, 0.92);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
-        .hud-title {
-            font-size: 15px;
-            font-weight: 700;
+        .overlay-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            display: none !important;
+        }
+
+        .menu-box {
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #f5d75e;
+            border-radius: 20px;
+            padding: 30px 40px;
+            box-shadow: 0 0 40px rgba(245, 215, 94, 0.25);
+            text-align: center;
+            max-width: 550px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        h1.game-title {
+            font-size: 38px;
+            font-weight: 900;
             color: #f5d75e;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid rgba(245, 215, 94, 0.25);
-            padding-bottom: 6px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            text-shadow: 0 0 20px rgba(245, 215, 94, 0.5);
         }
-        .control-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 7px;
-            font-size: 13px;
-            color: #e2e8f0;
-        }
-        .key-badge {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 6px;
-            padding: 2px 7px;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            color: #ffffff;
-            font-size: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        p.subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 25px;
         }
 
-        /* PANEL DE ESTADO DEL NPC */
-        .npc-status-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(15, 23, 42, 0.88);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(245, 215, 94, 0.45);
-            border-radius: 14px;
-            padding: 16px 20px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-            width: 320px;
-            z-index: 10;
-            pointer-events: none;
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 20px;
         }
-        .npc-title {
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button.btn {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 12px;
             font-size: 15px;
             font-weight: 700;
-            color: #ffffff;
-            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-        .npc-desc {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-        .state-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .state-label-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #cbd5e1;
-            letter-spacing: 0.5px;
-        }
-        .state-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-            background: #b7202d;
+        button.btn:hover, button.btn.active {
+            background: linear-gradient(135deg, #b7202d, #881337);
+            border-color: #f5d75e;
             color: #ffffff;
-            letter-spacing: 0.5px;
-            box-shadow: 0 0 10px rgba(183, 32, 45, 0.5);
-            transition: all 0.3s ease;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(183, 32, 45, 0.5);
         }
-        .cam-badge {
+        button.btn-primary {
+            background: linear-gradient(135deg, #10b981, #047857);
+            font-size: 18px;
+            padding: 14px 28px;
+            border-color: #34d399;
+        }
+        button.btn-primary:hover {
+            background: linear-gradient(135deg, #059669, #065f46);
+            box-shadow: 0 6px 25px rgba(16, 185, 129, 0.6);
+        }
+
+        /* HUD SUPERIOR */
+        #hud {
             position: absolute;
-            bottom: 20px;
+            top: 15px;
             left: 50%;
             transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #f5d75e;
+            border-radius: 30px;
+            padding: 8px 24px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .hud-team {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 16px;
+        }
+        .score-num {
+            font-size: 28px;
+            font-weight: 900;
+            color: #f5d75e;
+            font-family: monospace;
+        }
+        .timer-box {
+            font-size: 20px;
+            font-weight: 800;
+            color: #38bdf8;
+            font-family: monospace;
+            background: rgba(0,0,0,0.4);
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* BARRA DE PODER */
+        #power-hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
             background: rgba(15, 23, 42, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #f5d75e;
+            border-radius: 16px;
+            padding: 10px 16px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             pointer-events: none;
-            backdrop-filter: blur(6px);
+        }
+        .power-icon {
+            font-size: 24px;
+        }
+        .power-meter-track {
+            width: 120px;
+            height: 12px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .power-meter-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            transition: width 0.1s linear;
+        }
+
+        /* CONTROLES TÁCTILES */
+        #touch-controls {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            display: none;
+        }
+        .joystick-zone {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: auto;
+        }
+        .joystick-knob {
+            position: absolute;
+            top: 35px; left: 35px;
+            width: 50px; height: 50px;
+            background: rgba(245, 215, 94, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(245, 215, 94, 0.5);
+        }
+        .touch-btn-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 65px);
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .t-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .t-btn:active {
+            background: #b7202d;
+            transform: scale(0.92);
+        }
+
+        /* TIENDA Y ESTADÍSTICAS */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+        }
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .shop-card {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+        .shop-card.unlocked {
+            border-color: #10b981;
+        }
+        .shop-card.equipped {
+            border-color: #f5d75e;
+            background: rgba(245, 215, 94, 0.1);
+        }
+
+        /* CARTEL DE GOL */
+        #banner {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            font-size: 48px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            background: linear-gradient(135deg, #f5d75e, #b7202d);
+            padding: 20px 50px;
+            border-radius: 25px;
+            box-shadow: 0 0 60px rgba(245, 215, 94, 0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 30;
+            text-align: center;
+        }
+        #banner.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
         }
     </style>
 </head>
 <body>
-    <div id="webgl-container"></div>
 
-    <!-- LEYENDA VISIBLE DE CONTROLES DEL JUGADOR -->
-    <div class="hud-panel">
-        <div class="hud-title">🎮 Controles del Jugador</div>
-        <div class="control-row">
-            <span>Avanzar / Retroceder:</span>
-            <span><span class="key-badge">⬆️ ⬇️</span> <span class="key-badge">W S</span></span>
+    <div id="game-container">
+        <!-- CANVAS -->
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+        <!-- BANNER DE ANUNCIO DE GOL -->
+        <div id="banner">⚽ ¡GOOOOL! ⚽</div>
+
+        <!-- HUD DE PARTIDO -->
+        <div id="hud">
+            <div class="hud-team" style="color: #38bdf8;">
+                <span id="player-kit-dot" style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#0284c7;"></span>
+                <span>AZUL</span>
+                <span id="score-home" class="score-num">0</span>
+            </div>
+            <div class="timer-box" id="match-timer">03:00</div>
+            <div class="hud-team" style="color: #ef4444;">
+                <span id="score-away" class="score-num">0</span>
+                <span>ROJO</span>
+                <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#ef4444;"></span>
+            </div>
         </div>
-        <div class="control-row">
-            <span>Girar Izq. / Der.:</span>
-            <span><span class="key-badge">⬅️ ➡️</span> <span class="key-badge">A D</span></span>
+
+        <!-- BARRA DE PODER ESPECIAL -->
+        <div id="power-hud">
+            <span class="power-icon" id="power-icon-disp">⚡</span>
+            <div>
+                <div style="font-size: 11px; font-weight: bold; color: #f5d75e; margin-bottom: 2px;" id="power-name-disp">TURBO</div>
+                <div class="power-meter-track">
+                    <div id="power-bar" class="power-meter-fill"></div>
+                </div>
+            </div>
         </div>
-        <div class="control-row">
-            <span>Correr (Acelerar):</span>
-            <span class="key-badge">Shift</span>
+
+        <!-- CONTROLES TÁCTILES MÓVILES -->
+        <div id="touch-controls">
+            <div class="joystick-zone" id="joy-zone">
+                <div class="joystick-knob" id="joy-knob"></div>
+            </div>
+            <div class="touch-btn-container">
+                <button class="t-btn" id="tb-pass">PASE<br>(J)</button>
+                <button class="t-btn" id="tb-lob">LOB<br>(K)</button>
+                <button class="t-btn" id="tb-shoot" style="background:#b7202d;">TIRO<br>(SPC)</button>
+                <button class="t-btn" id="tb-tackle">BARRIDA<br>(L)</button>
+                <button class="t-btn" id="tb-power" style="background:#059669;">PODER<br>(E)</button>
+                <button class="t-btn" id="tb-switch">CAMBIO<br>(Q)</button>
+            </div>
         </div>
-        <div class="control-row">
-            <span>Saltar:</span>
-            <span class="key-badge">Espacio</span>
+
+        <!-- MENÚ PRINCIPAL -->
+        <div id="menu-main" class="overlay-screen">
+            <div class="menu-box">
+                <h1 class="game-title">⚽ RETRO CHAMPIONS 5v5 ⚽</h1>
+                <p class="subtitle">Fútbol Arcade Acción Total - Canvas 2D</p>
+                <div style="margin-bottom: 15px; font-size: 14px; color: #f5d75e; font-weight: bold;">
+                    🪙 MONEDAS: <span id="coin-count">0</span>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="showScreen('menu-diff')">▶ JUGAR PARTIDO</button>
+                    <button class="btn" onclick="showScreen('menu-shop')">🛒 TIENDA Y PODERES</button>
+                    <button class="btn" onclick="showScreen('menu-stats')">📊 ESTADÍSTICAS</button>
+                    <button class="btn" onclick="showScreen('menu-controls')">🎮 CONTROLES</button>
+                </div>
+            </div>
         </div>
-        <div class="control-row">
-            <span>Cambiar Vista Cámara:</span>
-            <span class="key-badge">Tecla C</span>
+
+        <!-- SELECCIÓN DE DIFICULTAD -->
+        <div id="menu-diff" class="overlay-screen hidden">
+            <div class="menu-box">
+                <h1 class="game-title">DIFICULTAD IA</h1>
+                <p class="subtitle">Selecciona el nivel de desafío de tus rivales</p>
+                <div class="btn-group">
+                    <button class="btn" onclick="selectDifficulty('easy')">🟢 FÁCIL (Novato)</button>
+                    <button class="btn active" onclick="selectDifficulty('normal')">🟡 NORMAL (Pro)</button>
+                    <button class="btn" onclick="selectDifficulty('hard')">🔴 DIFÍCIL (Elite)</button>
+                    <button class="btn" onclick="selectDifficulty('expert')">🔥 EXPERTO (Mendaz)</button>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="startMatch()">¡INICIAR PARTIDO!</button>
+                    <button class="btn" onclick="showScreen('menu-main')">VOLVER</button>
+                </div>
+            </div>
         </div>
+
+        <!-- TIENDA Y EQUIPACIONES -->
+        <div id="menu-shop" class="overlay-screen hidden">
+            <div class="menu-box">
+                <h1 class="game-title">TIENDA Y EQUIPACIONES</h1>
+                <p class="subtitle">Desbloquea equipaciones y poderes con tus monedas</p>
+                <div style="font-size: 14px; color: #f5d75e; font-weight: bold; margin-bottom: 10px;">
+                    🪙 MONEDAS DISPONIBLES: <span id="shop-coin-count">0</span>
+                </div>
+                
+                <h3 style="font-size:14px; color:#38bdf8; margin-top:10px; text-align:left;">PODER ESPECIAL EQUIPADO:</h3>
+                <div class="shop-grid" id="power-shop-list"></div>
+
+                <h3 style="font-size:14px; color:#38bdf8; margin-top:15px; text-align:left;">EQUIPACIÓN / UNIFORME:</h3>
+                <div class="shop-grid" id="kit-shop-list"></div>
+
+                <div style="margin-top:20px;">
+                    <button class="btn" onclick="showScreen('menu-main')">VOLVER AL MENÚ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div id="menu-stats" class="overlay-screen hidden">
+            <div class="menu-box">
+                <h1 class="game-title">ESTADÍSTICAS</h1>
+                <p class="subtitle">Historial de tus partidos y logros</p>
+                
+                <div id="stats-container">
+                    <div class="stat-row"><span>Partidos Jugados:</span><b id="st-played">0</b></div>
+                    <div class="stat-row"><span>Victorias:</span><b id="st-wins">0</b></div>
+                    <div class="stat-row"><span>Derrotas:</span><b id="st-losses">0</b></div>
+                    <div class="stat-row"><span>Goles A Favor:</span><b id="st-goals">0</b></div>
+                    <div class="stat-row"><span>Racha de Victorias:</span><b id="st-streak">0</b></div>
+                </div>
+
+                <div style="margin-top:25px;">
+                    <button class="btn" onclick="showScreen('menu-main')">VOLVER</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GUÍA DE CONTROLES -->
+        <div id="menu-controls" class="overlay-screen hidden">
+            <div class="menu-box">
+                <h1 class="game-title">GUÍA DE CONTROLES</h1>
+                <p class="subtitle">Aprende a dominar la cancha</p>
+                
+                <div style="text-align:left; font-size:13px; line-height:1.8; color:#cbd5e1;">
+                    • <b>WASD / Flechas:</b> Mover Jugador<br>
+                    • <b>Shift:</b> Correr (Acelerar)<br>
+                    • <b>J:</b> Pase Corto al Ras<br>
+                    • <b>K:</b> Pase Largo / Centro Elevado<br>
+                    • <b>Espacio (Mantener):</b> Cargar Tiro Potente<br>
+                    • <b>L:</b> Barrida Defensiva / Interceptar<br>
+                    • <b>E:</b> Activar Poder Especial<br>
+                    • <b>Q:</b> Cambiar Jugador Controlado<br>
+                    • <b>P / Esc:</b> Pausar Partido
+                </div>
+
+                <div style="margin-top:20px;">
+                    <button class="btn" onclick="showScreen('menu-main')">ENTENDIDO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENÚ DE PAUSA -->
+        <div id="menu-pause" class="overlay-screen hidden">
+            <div class="menu-box">
+                <h1 class="game-title">PARTIDO PAUSADO</h1>
+                <div class="btn-group" style="margin-top:20px;">
+                    <button class="btn btn-primary" onclick="resumeMatch()">RESUMIR JUEGO</button>
+                    <button class="btn" onclick="quitMatch()">ABANDONAR PARTIDO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENÚ FIN DE PARTIDO -->
+        <div id="menu-gameover" class="overlay-screen hidden">
+            <div class="menu-box">
+                <h1 class="game-title" id="go-title">¡VICTORIA!</h1>
+                <p class="subtitle" id="go-subtitle">Has ganado el partido de exhibición</p>
+                
+                <div style="font-size: 22px; font-weight: bold; color: #f5d75e; margin: 15px 0;">
+                    MARCADOR: <span id="go-score">0 - 0</span>
+                </div>
+                <div style="font-size: 15px; color: #34d399; margin-bottom: 20px;">
+                    🪙 Monedas Ganadas: +<span id="go-coins">0</span>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="startMatch()">REVANCHA</button>
+                    <button class="btn" onclick="showScreen('menu-main')">MENÚ PRINCIPAL</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- PANEL DE INFORMACIÓN Y ESTADO DEL NPC -->
-    <div class="npc-status-panel">
-        <div class="npc-title">👤 NPC: Personaje en Estadio</div>
-        <div class="npc-desc">
-            Basado en la descripción de referencia: Traje formal oscuro (#15191F), Camisa blanca, Corbata roja (#B7202D), Reloj metálico en la muñeca y peinado elegante.
-        </div>
-        <div class="state-container">
-            <span class="state-label-title">Estado Autónomo:</span>
-            <span id="npc-state-label" class="state-badge">PASEANDO POR EL CAMPO</span>
-        </div>
-    </div>
-
-    <div id="cam-info" class="cam-badge">📷 Cámara: Tercera Persona (Jugador)</div>
-
-    <!-- Carga de Three.js desde CDN oficial sin pasos de compilación -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
+    <!-- MOTOR DE JUEGO JAVASCRIPT -->
     <script>
         /* ========================================================================
-           PARÁMETROS MODIFICABLES DE PERSONALIDAD Y VELOCIDAD DEL NPC
+           1. WEB AUDIO API SYNTHESIZER
            ======================================================================== */
-        
-        // Modifica estos valores para cambiar la apariencia o velocidad del NPC
-        const NPC_CONFIG = {
-            // Colores basados en la descripción artística
-            suitColor: 0x15191f,       // Traje formal negro con matiz azul marino
-            shirtColor: 0xf0ede5,      // Camisa blanca marfil
-            tieColor: 0xb7202d,        // Corbata rojo intenso
-            hairColor: 0x30231f,       // Cabello castaño muy oscuro
-            skinTone: 0xe8c7a2,        // Tono de piel beige cálido
-            watchColor: 0xb8bbc0,      // Reloj metálico plateado
-            
-            // Velocidades del movimiento autónomo
-            walkSpeed: 3.8,            // Velocidad al caminar
-            runSpeed: 7.2,             // Velocidad al trotar
-            rotationSpeed: 4.5,        // Velocidad de giro
-            
-            // Tiempos de pausa y gestos
-            pauseDurationMin: 2.0,     // Duración mínima de pausa
-            pauseDurationMax: 4.5,     // Duración máxima
-            waypointThreshold: 1.5     // Distancia límite para cambiar de punto
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playKick() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+            playWhistle() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(2200, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(2500, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+            playGoal() {
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 1.2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const whiteNoise = this.ctx.createBufferSource();
+                whiteNoise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+                filter.Q.setValueAtTime(3, this.ctx.currentTime);
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.2);
+                
+                whiteNoise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                whiteNoise.start();
+            }
+            playPower() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(900, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+        }
+        const sfx = new SoundFX();
+
+        /* ========================================================================
+           2. PERSISTENCIA LOCALSTORAGE
+           ======================================================================== */
+        const DEFAULT_DATA = {
+            coins: 150,
+            stats: { played: 0, wins: 0, losses: 0, goals: 0, streak: 0 },
+            equippedPower: 'turbo',
+            equippedKit: 'blue',
+            unlockedPowers: ['turbo'],
+            unlockedKits: ['blue']
         };
 
-        // Parámetros de movimiento del Jugador
-        const PLAYER_CONFIG = {
-            walkSpeed: 6.0,
-            runSpeed: 12.0,
-            turnSpeed: 3.0,
-            jumpForce: 11.0,
-            gravity: 28.0
-        };
+        let gameData = JSON.parse(localStorage.getItem('arcade_soccer_save')) || DEFAULT_DATA;
+        function saveData() {
+            localStorage.setItem('arcade_soccer_save', JSON.stringify(gameData));
+            updateDataUI();
+        }
 
-        // Límites del campo de juego (Evita que el personaje o el NPC salgan del césped)
-        const FIELD_BOUNDS = { minX: -32, maxX: 32, minZ: -45, maxZ: 45 };
-
-        /* ========================================================================
-           INICIALIZACIÓN DE ESCENA Y RENDERIZADOR WEBGL
-           ======================================================================== */
-        const container = document.getElementById('webgl-container');
-        
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x060c18);
-        scene.fog = new THREE.FogExp2(0x060c18, 0.008);
-
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
-        
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        container.appendChild(renderer.domElement);
-
-        /* ========================================================================
-           ILUMINACIÓN DEL ESTADIO DE FÚTBOL
-           ======================================================================== */
-        const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.45);
-        scene.add(ambientLight);
-
-        const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
-        mainLight.position.set(25, 45, 20);
-        mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 2048;
-        mainLight.shadow.mapSize.height = 2048;
-        mainLight.shadow.camera.near = 0.5;
-        mainLight.shadow.camera.far = 150;
-        const d = 55;
-        mainLight.shadow.camera.left = -d;
-        mainLight.shadow.camera.right = d;
-        mainLight.shadow.camera.top = d;
-        mainLight.shadow.camera.bottom = -d;
-        mainLight.shadow.bias = -0.0005;
-        scene.add(mainLight);
-
-        /* ========================================================================
-           TEXTURA PROCEDURAL DEL CÉSPED Y LÍNEAS DEL CAMPO
-           ======================================================================== */
-        function createPitchTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 1024;
-            const ctx = canvas.getContext('2d');
-
-            // Césped Base
-            ctx.fillStyle = '#2e7d32';
-            ctx.fillRect(0, 0, 1024, 1024);
-
-            // Franjas de corte alternadas
-            const numStripes = 20;
-            const stripeHeight = 1024 / numStripes;
-            ctx.fillStyle = '#388e3c';
-            for (let i = 0; i < numStripes; i += 2) {
-                ctx.fillRect(0, i * stripeHeight, 1024, stripeHeight);
-            }
-
-            // Detalle de hierba
-            for (let i = 0; i < 8000; i++) {
-                const x = Math.random() * 1024;
-                const y = Math.random() * 1024;
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
-                ctx.fillRect(x, y, 2, 4);
-            }
-
-            // Dibuja Líneas Oficiales del Estadio
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 10;
-
-            const margin = 40;
-            const w = 1024 - margin * 2;
-            const h = 1024 - margin * 2;
-            ctx.strokeRect(margin, margin, w, h);
-
-            // Línea central y círculo central
-            ctx.beginPath();
-            ctx.moveTo(margin, 1024 / 2);
-            ctx.lineTo(1024 - margin, 1024 / 2);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(1024 / 2, 1024 / 2, 120, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Áreas de penalti
-            ctx.strokeRect(1024 / 2 - 200, margin, 400, 160);
-            ctx.strokeRect(1024 / 2 - 90, margin, 180, 60);
-
-            ctx.strokeRect(1024 / 2 - 200, 1024 - margin - 160, 400, 160);
-            ctx.strokeRect(1024 / 2 - 90, 1024 - margin - 60, 180, 60);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.anisotropy = 8;
-            return texture;
+        function updateDataUI() {
+            document.getElementById('coin-count').innerText = gameData.coins;
+            document.getElementById('shop-coin-count').innerText = gameData.coins;
+            document.getElementById('st-played').innerText = gameData.stats.played;
+            document.getElementById('st-wins').innerText = gameData.stats.wins;
+            document.getElementById('st-losses').innerText = gameData.stats.losses;
+            document.getElementById('st-goals').innerText = gameData.stats.goals;
+            document.getElementById('st-streak').innerText = gameData.stats.streak;
+            
+            const kitColors = { blue: '#0284c7', gold: '#f5d75e', neon: '#10b981', flame: '#ef4444' };
+            document.getElementById('player-kit-dot').style.background = kitColors[gameData.equippedKit] || '#0284c7';
         }
 
         /* ========================================================================
-           GEOMETRÍA DEL ESTADIO (Cancha, Porterías, Gradas y Focos)
+           3. CANVAS Y EVENTOS DE ENTRADA
            ======================================================================== */
-        const pitchTexture = createPitchTexture();
-        const pitchGeo = new THREE.PlaneGeometry(70, 100);
-        const pitchMat = new THREE.MeshStandardMaterial({ map: pitchTexture, roughness: 0.8, metalness: 0.1 });
-        const pitchMesh = new THREE.Mesh(pitchGeo, pitchMat);
-        pitchMesh.rotation.x = -Math.PI / 2;
-        pitchMesh.receiveShadow = true;
-        scene.add(pitchMesh);
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-        // Porterías Norte y Sur
-        function createGoal(zPos, rotY) {
-            const goalGroup = new THREE.Group();
-            const postMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.2 });
-            
-            const postGeo = new THREE.CylinderGeometry(0.1, 0.1, 3.2, 16);
-            const leftPost = new THREE.Mesh(postGeo, postMat);
-            leftPost.position.set(-3.66, 1.6, 0);
-            leftPost.castShadow = true;
-            goalGroup.add(leftPost);
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            sfx.init();
+            keys[e.code] = true;
+            if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+            if (e.code === 'KeyQ' && gameState === 'MATCH_PLAYING') switchControlledPlayer();
+        });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-            const rightPost = new THREE.Mesh(postGeo, postMat);
-            rightPost.position.set(3.66, 1.6, 0);
-            rightPost.castShadow = true;
-            goalGroup.add(rightPost);
+        let touchJoyDir = { x: 0, y: 0 };
+        const joyZone = document.getElementById('joy-zone');
+        const joyKnob = document.getElementById('joy-knob');
+        let joyActive = false;
 
-            const barGeo = new THREE.CylinderGeometry(0.1, 0.1, 7.52, 16);
-            const crossbar = new THREE.Mesh(barGeo, postMat);
-            crossbar.rotation.z = Math.PI / 2;
-            crossbar.position.set(0, 3.2, 0);
-            crossbar.castShadow = true;
-            goalGroup.add(crossbar);
+        function setupTouch() {
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.getElementById('touch-controls').style.display = 'block';
+            }
+            joyZone.addEventListener('touchstart', (e) => { joyActive = true; handleJoyMove(e.touches[0]); }, {passive: true});
+            joyZone.addEventListener('touchmove', (e) => { if(joyActive) handleJoyMove(e.touches[0]); }, {passive: true});
+            joyZone.addEventListener('touchend', () => {
+                joyActive = false;
+                touchJoyDir = { x: 0, y: 0 };
+                joyKnob.style.transform = 'translate(0px, 0px)';
+            });
 
-            const netMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, wireframe: true, transparent: true, opacity: 0.35 });
-            const netGeo = new THREE.BoxGeometry(7.32, 3.2, 2.0);
-            const netMesh = new THREE.Mesh(netGeo, netMat);
-            netMesh.position.set(0, 1.6, -1.0);
-            goalGroup.add(netMesh);
-
-            goalGroup.position.set(0, 0, zPos);
-            goalGroup.rotation.y = rotY;
-            return goalGroup;
+            const bindBtn = (id, code) => {
+                const el = document.getElementById(id);
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); sfx.init(); keys[code] = true; });
+                el.addEventListener('touchend', (e) => { e.preventDefault(); keys[code] = false; });
+            };
+            bindBtn('tb-pass', 'KeyJ');
+            bindBtn('tb-lob', 'KeyK');
+            bindBtn('tb-shoot', 'Space');
+            bindBtn('tb-tackle', 'KeyL');
+            bindBtn('tb-power', 'KeyE');
+            bindBtn('tb-switch', 'KeyQ');
         }
 
-        scene.add(createGoal(47, Math.PI));
-        scene.add(createGoal(-47, 0));
+        function handleJoyMove(touch) {
+            const rect = joyZone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const dist = Math.hypot(dx, dy);
+            const maxR = 40;
+            if (dist > maxR) {
+                dx = (dx / dist) * maxR;
+                dy = (dy / dist) * maxR;
+            }
+            joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+            touchJoyDir = { x: dx / maxR, y: dy / maxR };
+        }
 
-        // Tribunas y Asientos del Estadio
-        function createStands() {
-            const standsGroup = new THREE.Group();
-            const concreteMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
-            const seatColors = [0xb7202d, 0x1d4ed8, 0xf5d75e, 0xffffff];
+        /* ========================================================================
+           4. ESTADOS Y DIFICULTAD
+           ======================================================================== */
+        let gameState = 'MENU';
+        let selectedDiff = 'normal';
 
-            for (let side = -1; side <= 1; side += 2) {
-                const sideGroup = new THREE.Group();
-                for (let tier = 0; tier < 8; tier++) {
-                    const stepGeo = new THREE.BoxGeometry(16, 1.5, 110);
-                    const stepMesh = new THREE.Mesh(stepGeo, concreteMat);
-                    stepMesh.position.set(side * (42 + tier * 2.2), tier * 1.2 + 0.75, 0);
-                    stepMesh.receiveShadow = true;
-                    stepMesh.castShadow = true;
-                    sideGroup.add(stepMesh);
+        const DIFF_PARAMS = {
+            easy: { speed: 3.2, passAcc: 0.5, tackleAggro: 0.01, shotPower: 12, reaction: 0.03 },
+            normal: { speed: 4.5, passAcc: 0.75, tackleAggro: 0.04, shotPower: 16, reaction: 0.06 },
+            hard: { speed: 5.8, passAcc: 0.9, tackleAggro: 0.08, shotPower: 20, reaction: 0.09 },
+            expert: { speed: 6.8, passAcc: 0.98, tackleAggro: 0.14, shotPower: 24, reaction: 0.14 }
+        };
 
-                    for (let z = -48; z <= 48; z += 3.5) {
-                        const seatGeo = new THREE.BoxGeometry(1.2, 0.8, 1.8);
-                        const seatMat = new THREE.MeshBasicMaterial({ color: seatColors[Math.floor(Math.random() * seatColors.length)] });
-                        const seatMesh = new THREE.Mesh(seatGeo, seatMat);
-                        seatMesh.position.set(side * (41.8 + tier * 2.2), tier * 1.2 + 1.8, z);
-                        sideGroup.add(seatMesh);
+        function showScreen(id) {
+            document.querySelectorAll('.overlay-screen').forEach(el => el.classList.add('hidden'));
+            if (id) document.getElementById(id).classList.remove('hidden');
+        }
+
+        function selectDifficulty(diff) {
+            selectedDiff = diff;
+            document.querySelectorAll('#menu-diff .btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        /* ========================================================================
+           5. ENTIDADES DEL JUEGO
+           ======================================================================== */
+        const PITCH = { width: 900, height: 520, x: 50, y: 40 };
+        const GOAL = { height: 140, depth: 30, topY: 230, bottomY: 370 };
+
+        class Ball {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.z = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this.vz = 0;
+                this.radius = 8;
+                this.owner = null;
+            }
+            update() {
+                if (this.owner) {
+                    const offset = 12;
+                    this.x = this.owner.x + Math.cos(this.owner.angle) * offset;
+                    this.y = this.owner.y + Math.sin(this.owner.angle) * offset;
+                    this.z = 0;
+                    this.vx = 0;
+                    this.vy = 0;
+                    return;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+                this.z += this.vz;
+
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+
+                if (this.z > 0) {
+                    this.vz -= 0.5;
+                } else {
+                    this.z = 0;
+                    if (Math.abs(this.vz) > 1) {
+                        this.vz = -this.vz * 0.5;
+                    } else {
+                        this.vz = 0;
                     }
                 }
-                standsGroup.add(sideGroup);
+
+                if (this.y < PITCH.y + this.radius || this.y > PITCH.y + PITCH.height - this.radius) {
+                    this.vy *= -0.8;
+                }
+
+                const inGoalY = (this.y > GOAL.topY && this.y < GOAL.bottomY);
+                if (!inGoalY) {
+                    if (this.x < PITCH.x + this.radius || this.x > PITCH.x + PITCH.width - this.radius) {
+                        this.vx *= -0.8;
+                    }
+                }
             }
-            return standsGroup;
-        }
-        scene.add(createStands());
+            draw() {
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.radius, this.radius * 0.5, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fill();
 
-        // Torres de Iluminación
-        function createFloodlightTower(x, z) {
-            const towerGroup = new THREE.Group();
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
-            const poleGeo = new THREE.CylinderGeometry(0.4, 0.8, 28, 12);
-            const pole = new THREE.Mesh(poleGeo, poleMat);
-            pole.position.y = 14;
-            pole.castShadow = true;
-            towerGroup.add(pole);
+                ctx.save();
+                ctx.translate(this.x, this.y - this.z);
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#111111';
+                ctx.stroke();
 
-            const panelGeo = new THREE.BoxGeometry(6, 4, 0.8);
-            const panelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a });
-            const panel = new THREE.Mesh(panelGeo, panelMat);
-            panel.position.set(0, 27, 0);
-            panel.lookAt(0, 0, 0);
-            towerGroup.add(panel);
-
-            const lightGridMat = new THREE.MeshBasicMaterial({ color: 0xfffbeb });
-            const gridGeo = new THREE.PlaneGeometry(5.2, 3.2);
-            const gridMesh = new THREE.Mesh(gridGeo, lightGridMat);
-            gridMesh.position.set(0, 27, 0.45);
-            gridMesh.lookAt(0, 0, 0);
-            towerGroup.add(gridMesh);
-
-            const spot = new THREE.SpotLight(0xfffbeb, 1.2, 120, Math.PI / 4, 0.5);
-            spot.position.set(x, 27, z);
-            spot.target.position.set(0, 0, 0);
-            scene.add(spot);
-            scene.add(spot.target);
-
-            towerGroup.position.set(x, 0, z);
-            return towerGroup;
-        }
-
-        scene.add(createFloodlightTower(38, 48));
-        scene.add(createFloodlightTower(-38, 48));
-        scene.add(createFloodlightTower(38, -48));
-        scene.add(createFloodlightTower(-38, -48));
-
-        /* ========================================================================
-           CONSTRUCCIÓN DEL NPC (Fiel a la descripción de referencia - Sin Trofeo)
-           ======================================================================== */
-        function createNPC() {
-            const npcGroup = new THREE.Group();
-
-            const suitMat = new THREE.MeshStandardMaterial({ color: NPC_CONFIG.suitColor, roughness: 0.65, metalness: 0.1 });
-            const shirtMat = new THREE.MeshStandardMaterial({ color: NPC_CONFIG.shirtColor, roughness: 0.5 });
-            const tieMat = new THREE.MeshStandardMaterial({ color: NPC_CONFIG.tieColor, roughness: 0.4 });
-            const skinMat = new THREE.MeshStandardMaterial({ color: NPC_CONFIG.skinTone, roughness: 0.7 });
-            const hairMat = new THREE.MeshStandardMaterial({ color: NPC_CONFIG.hairColor, roughness: 0.9 });
-            const shoeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3 });
-
-            // 1. Torso y Traje Formal
-            const torsoGeo = new THREE.BoxGeometry(0.7, 0.9, 0.4);
-            const torso = new THREE.Mesh(torsoGeo, suitMat);
-            torso.position.y = 1.35;
-            torso.castShadow = true;
-            npcGroup.add(torso);
-
-            // Camisa blanca
-            const shirtGeo = new THREE.BoxGeometry(0.25, 0.6, 0.05);
-            const shirt = new THREE.Mesh(shirtGeo, shirtMat);
-            shirt.position.set(0, 1.4, 0.18);
-            npcGroup.add(shirt);
-
-            // Corbata roja
-            const tieGeo = new THREE.BoxGeometry(0.08, 0.45, 0.04);
-            const tie = new THREE.Mesh(tieGeo, tieMat);
-            tie.position.set(0, 1.35, 0.21);
-            npcGroup.add(tie);
-
-            // Emblema Dorado en el bolsillo
-            const emblemGeo = new THREE.BoxGeometry(0.08, 0.08, 0.02);
-            const emblemMat = new THREE.MeshStandardMaterial({ color: 0xf5d75e, metalness: 0.8 });
-            const emblem = new THREE.Mesh(emblemGeo, emblemMat);
-            emblem.position.set(0.2, 1.5, 0.21);
-            npcGroup.add(emblem);
-
-            // 2. Cabeza, Peinado y Rostro
-            const headGroup = new THREE.Group();
-            headGroup.position.y = 2.05;
-
-            const headGeo = new THREE.BoxGeometry(0.38, 0.42, 0.36);
-            const head = new THREE.Mesh(headGeo, skinMat);
-            head.castShadow = true;
-            headGroup.add(head);
-
-            // Cabello peinado hacia atrás
-            const hairGeo = new THREE.BoxGeometry(0.40, 0.2, 0.38);
-            const hair = new THREE.Mesh(hairGeo, hairMat);
-            hair.position.set(0, 0.15, -0.02);
-            headGroup.add(hair);
-
-            // Ojos Marrones
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x493329 });
-            const eyeGeo = new THREE.BoxGeometry(0.06, 0.05, 0.02);
-            
-            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-            leftEye.position.set(-0.1, 0.04, 0.19);
-            headGroup.add(leftEye);
-
-            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-            rightEye.position.set(0.1, 0.04, 0.19);
-            headGroup.add(rightEye);
-
-            // Sonrisa amplia
-            const smileGeo = new THREE.BoxGeometry(0.16, 0.04, 0.02);
-            const smileMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            const smile = new THREE.Mesh(smileGeo, smileMat);
-            smile.position.set(0, -0.1, 0.19);
-            headGroup.add(smile);
-
-            npcGroup.add(headGroup);
-
-            // 3. Piernas y Zapatos
-            const legGeo = new THREE.BoxGeometry(0.24, 0.85, 0.26);
-            
-            const leftLeg = new THREE.Mesh(legGeo, suitMat);
-            leftLeg.position.set(-0.18, 0.45, 0);
-            leftLeg.castShadow = true;
-            npcGroup.add(leftLeg);
-
-            const rightLeg = new THREE.Mesh(legGeo, suitMat);
-            rightLeg.position.set(0.18, 0.45, 0);
-            rightLeg.castShadow = true;
-            npcGroup.add(rightLeg);
-
-            const shoeGeo = new THREE.BoxGeometry(0.25, 0.15, 0.38);
-            const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
-            leftShoe.position.set(-0.18, 0.08, 0.05);
-            npcGroup.add(leftShoe);
-
-            const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
-            rightShoe.position.set(0.18, 0.08, 0.05);
-            npcGroup.add(rightShoe);
-
-            // 4. Brazos y Reloj de Pulsera (Postura natural sin trofeo)
-            const armGeo = new THREE.BoxGeometry(0.2, 0.75, 0.2);
-
-            const leftArmGroup = new THREE.Group();
-            leftArmGroup.position.set(-0.45, 1.6, 0);
-            const leftArm = new THREE.Mesh(armGeo, suitMat);
-            leftArm.position.y = -0.32;
-            leftArm.castShadow = true;
-            leftArmGroup.add(leftArm);
-
-            // Reloj de pulsera metálico en la muñeca izquierda
-            const watchGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.06, 12);
-            const watchMat = new THREE.MeshStandardMaterial({ color: NPC_CONFIG.watchColor, metalness: 0.95 });
-            const watch = new THREE.Mesh(watchGeo, watchMat);
-            watch.position.set(0, -0.52, 0.08);
-            leftArmGroup.add(watch);
-
-            npcGroup.add(leftArmGroup);
-
-            const rightArmGroup = new THREE.Group();
-            rightArmGroup.position.set(0.45, 1.6, 0);
-            const rightArm = new THREE.Mesh(armGeo, suitMat);
-            rightArm.position.y = -0.32;
-            rightArm.castShadow = true;
-            rightArmGroup.add(rightArm);
-            npcGroup.add(rightArmGroup);
-
-            npcGroup.userData = {
-                leftLeg, rightLeg, leftArmGroup, rightArmGroup, headGroup,
-                state: 'WALK',
-                target: new THREE.Vector3(0, 0, 0),
-                waitTime: 0,
-                animTime: 0
-            };
-
-            return npcGroup;
-        }
-
-        const npc = createNPC();
-        npc.position.set(0, 0, 10);
-        scene.add(npc);
-
-        /* ========================================================================
-           CONSTRUCCIÓN DEL JUGADOR
-           ======================================================================== */
-        function createPlayerMesh() {
-            const playerGroup = new THREE.Group();
-            const kitMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.5 });
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xfbd38d });
-            
-            const bodyGeo = new THREE.BoxGeometry(0.6, 0.8, 0.35);
-            const body = new THREE.Mesh(bodyGeo, kitMat);
-            body.position.y = 1.2;
-            body.castShadow = true;
-            playerGroup.add(body);
-
-            const headGeo = new THREE.SphereGeometry(0.2, 16, 16);
-            const head = new THREE.Mesh(headGeo, skinMat);
-            head.position.y = 1.8;
-            head.castShadow = true;
-            playerGroup.add(head);
-
-            const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
-            const leftLeg = new THREE.Mesh(legGeo, kitMat);
-            leftLeg.position.set(-0.16, 0.4, 0);
-            leftLeg.castShadow = true;
-            playerGroup.add(leftLeg);
-
-            const rightLeg = new THREE.Mesh(legGeo, kitMat);
-            rightLeg.position.set(0.16, 0.4, 0);
-            rightLeg.castShadow = true;
-            playerGroup.add(rightLeg);
-
-            playerGroup.userData = {
-                velocity: new THREE.Vector3(),
-                isGrounded: true,
-                animTime: 0,
-                leftLeg, rightLeg
-            };
-
-            return playerGroup;
-        }
-
-        const player = createPlayerMesh();
-        player.position.set(0, 0, -15);
-        scene.add(player);
-
-        /* ========================================================================
-           MANEJO DE EVENTOS DE TECLADO
-           ======================================================================== */
-        const keys = { up: false, down: false, left: false, right: false, shift: false, space: false };
-
-        window.addEventListener('keydown', (e) => {
-            switch (e.code) {
-                case 'ArrowUp': case 'KeyW': keys.up = true; break;
-                case 'ArrowDown': case 'KeyS': keys.down = true; break;
-                case 'ArrowLeft': case 'KeyA': keys.left = true; break;
-                case 'ArrowRight': case 'KeyD': keys.right = true; break;
-                case 'ShiftLeft': case 'ShiftRight': keys.shift = true; break;
-                case 'Space': keys.space = true; break;
-                case 'KeyC': toggleCameraMode(); break;
+                ctx.beginPath();
+                ctx.arc(-2, -2, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#111';
+                ctx.fill();
+                ctx.restore();
             }
-        });
+        }
 
-        window.addEventListener('keyup', (e) => {
-            switch (e.code) {
-                case 'ArrowUp': case 'KeyW': keys.up = false; break;
-                case 'ArrowDown': case 'KeyS': keys.down = false; break;
-                case 'ArrowLeft': case 'KeyA': keys.left = false; break;
-                case 'ArrowRight': case 'KeyD': keys.right = false; break;
-                case 'ShiftLeft': case 'ShiftRight': keys.shift = false; break;
-                case 'Space': keys.space = false; break;
+        class Player {
+            constructor(x, y, team, isGK = false, role = 'MF') {
+                this.startX = x;
+                this.startY = y;
+                this.x = x;
+                this.y = y;
+                this.team = team;
+                this.isGK = isGK;
+                this.role = role;
+                this.radius = 12;
+                this.vx = 0;
+                this.vy = 0;
+                this.angle = 0;
+                this.speed = 4.5;
+                this.isTackling = false;
+                this.tackleTimer = 0;
+                this.stunnedTimer = 0;
+                this.hasShield = false;
             }
-        });
+            reset() {
+                this.x = this.startX;
+                this.y = this.startY;
+                this.vx = 0;
+                this.vy = 0;
+                this.isTackling = false;
+                this.stunnedTimer = 0;
+            }
+            update() {
+                if (this.stunnedTimer > 0) {
+                    this.stunnedTimer--;
+                    return;
+                }
+
+                if (this.isTackling) {
+                    this.tackleTimer--;
+                    this.x += Math.cos(this.angle) * 8;
+                    this.y += Math.sin(this.angle) * 8;
+                    if (this.tackleTimer <= 0) this.isTackling = false;
+                    return;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                this.x = Math.max(PITCH.x + this.radius, Math.min(PITCH.x + PITCH.width - this.radius, this.x));
+                this.y = Math.max(PITCH.y + this.radius, Math.min(PITCH.y + PITCH.height - this.radius, this.y));
+            }
+            draw(isControlled) {
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y + 8, this.radius, this.radius * 0.4, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fill();
+
+                if (this.hasShield) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius + 6, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                if (this.isGK) {
+                    ctx.fillStyle = this.team === 'blue' ? '#10b981' : '#f59e0b';
+                } else {
+                    const kitColors = { blue: '#0284c7', gold: '#f5d75e', neon: '#10b981', flame: '#ef4444' };
+                    ctx.fillStyle = this.team === 'blue' ? (kitColors[gameData.equippedKit] || '#0284c7') : '#ef4444';
+                }
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x + Math.cos(this.angle) * (this.radius + 4), this.y + Math.sin(this.angle) * (this.radius + 4));
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                if (isControlled) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y - this.radius - 14);
+                    ctx.lineTo(this.x - 6, this.y - this.radius - 22);
+                    ctx.lineTo(this.x + 6, this.y - this.radius - 22);
+                    ctx.closePath();
+                    ctx.fillStyle = '#f5d75e';
+                    ctx.fill();
+                }
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.color = color;
+                this.life = 1.0;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.03;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, 4, 4);
+                ctx.restore();
+            }
+        }
 
         /* ========================================================================
-           CÁMARA DINÁMICA MULTIMODO
+           6. BUCLE Y MOTOR DE JUEGO
            ======================================================================== */
-        let cameraMode = 0;
-        const camLabel = document.getElementById('cam-info');
+        let ball = new Ball();
+        let teamBluePlayers = [];
+        let teamRedPlayers = [];
+        let controlledIdx = 0;
+        let particles = [];
 
-        function toggleCameraMode() {
-            cameraMode = (cameraMode + 1) % 3;
-            const names = [
-                "📷 Cámara: Tercera Persona (Jugador)",
-                "📷 Cámara: Vista Táctica Aérea del Estadio",
-                "📷 Cámara: Seguir al Personaje NPC"
+        let scoreHome = 0;
+        let scoreAway = 0;
+        let matchTime = 180;
+
+        let powerCooldown = 0;
+        let powerActiveTimer = 0;
+        let shootCharge = 0;
+
+        function initMatch() {
+            ball.reset();
+            teamBluePlayers = [
+                new Player(70, 300, 'blue', true, 'GK'),
+                new Player(250, 200, 'blue', false, 'DF'),
+                new Player(250, 400, 'blue', false, 'DF'),
+                new Player(420, 220, 'blue', false, 'MF'),
+                new Player(420, 380, 'blue', false, 'FW')
             ];
-            camLabel.innerText = names[cameraMode];
+            teamRedPlayers = [
+                new Player(930, 300, 'red', true, 'GK'),
+                new Player(750, 200, 'red', false, 'DF'),
+                new Player(750, 400, 'red', false, 'DF'),
+                new Player(580, 220, 'red', false, 'MF'),
+                new Player(580, 380, 'red', false, 'FW')
+            ];
+            controlledIdx = 3;
+            scoreHome = 0;
+            scoreAway = 0;
+            matchTime = 180;
+            powerCooldown = 0;
+            powerActiveTimer = 0;
+            
+            document.getElementById('score-home').innerText = '0';
+            document.getElementById('score-away').innerText = '0';
+            updatePowerHUD();
+            sfx.playWhistle();
         }
 
-        function updateCamera() {
-            if (cameraMode === 0) {
-                const offset = new THREE.Vector3(0, 4.5, -8.5);
-                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotation.y);
-                const targetCamPos = player.position.clone().add(offset);
-                camera.position.lerp(targetCamPos, 0.1);
-                camera.lookAt(player.position.clone().add(new THREE.Vector3(0, 1.5, 0)));
-            } else if (cameraMode === 1) {
-                camera.position.lerp(new THREE.Vector3(0, 50, -65), 0.05);
-                camera.lookAt(0, 0, 0);
-            } else if (cameraMode === 2) {
-                const offset = new THREE.Vector3(0, 3.5, 6.0);
-                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), npc.rotation.y);
-                const targetCamPos = npc.position.clone().add(offset);
-                camera.position.lerp(targetCamPos, 0.08);
-                camera.lookAt(npc.position.clone().add(new THREE.Vector3(0, 1.4, 0)));
+        function switchControlledPlayer() {
+            let closest = 1;
+            let minDist = 9999;
+            for (let i = 1; i < teamBluePlayers.length; i++) {
+                const p = teamBluePlayers[i];
+                const d = Math.hypot(p.x - ball.x, p.y - ball.y);
+                if (d < minDist) {
+                    minDist = d;
+                    closest = i;
+                }
+            }
+            controlledIdx = closest;
+        }
+
+        function updateMatch() {
+            if (gameState !== 'MATCH_PLAYING') return;
+
+            matchTime -= 1/60;
+            if (matchTime <= 0) {
+                endMatch();
+                return;
+            }
+            const mins = String(Math.floor(matchTime / 60)).padStart(2, '0');
+            const secs = String(Math.floor(matchTime % 60)).padStart(2, '0');
+            document.getElementById('match-timer').innerText = `${mins}:${secs}`;
+
+            if (powerCooldown > 0) powerCooldown -= 1/60;
+            if (powerActiveTimer > 0) {
+                powerActiveTimer -= 1/60;
+                if (powerActiveTimer <= 0) resetActivePowers();
+            }
+            updatePowerHUD();
+
+            const ctrlP = teamBluePlayers[controlledIdx];
+            let dx = 0, dy = 0;
+            if (keys['KeyW'] || keys['ArrowUp']) dy -= 1;
+            if (keys['KeyS'] || keys['ArrowDown']) dy += 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) dx -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) dx += 1;
+
+            if (touchJoyDir.x !== 0 || touchJoyDir.y !== 0) {
+                dx = touchJoyDir.x;
+                dy = touchJoyDir.y;
+            }
+
+            const isSprinting = keys['ShiftLeft'] || keys['ShiftRight'];
+            let currentSpeed = ctrlP.speed * (isSprinting ? 1.4 : 1.0);
+            if (gameData.equippedPower === 'turbo' && powerActiveTimer > 0) currentSpeed *= 1.8;
+
+            if (dx !== 0 || dy !== 0) {
+                const angle = Math.atan2(dy, dx);
+                ctrlP.vx = Math.cos(angle) * currentSpeed;
+                ctrlP.vy = Math.sin(angle) * currentSpeed;
+                ctrlP.angle = angle;
+            } else {
+                ctrlP.vx *= 0.7;
+                ctrlP.vy *= 0.7;
+            }
+
+            if (keys['KeyJ']) {
+                keys['KeyJ'] = false;
+                executePass(ctrlP, false);
+            }
+            if (keys['KeyK']) {
+                keys['KeyK'] = false;
+                executePass(ctrlP, true);
+            }
+            if (keys['Space']) {
+                shootCharge = Math.min(100, shootCharge + 3);
+            } else if (shootCharge > 0) {
+                executeShot(ctrlP, shootCharge);
+                shootCharge = 0;
+            }
+            if (keys['KeyL']) {
+                keys['KeyL'] = false;
+                ctrlP.isTackling = true;
+                ctrlP.tackleTimer = 20;
+            }
+            if (keys['KeyE']) {
+                keys['KeyE'] = false;
+                activateSpecialPower();
+            }
+
+            const allPlayers = [...teamBluePlayers, ...teamRedPlayers];
+            allPlayers.forEach(p => {
+                p.update();
+                const distBall = Math.hypot(p.x - ball.x, p.y - ball.y);
+                if (distBall < p.radius + ball.radius + 4 && !ball.owner && p.stunnedTimer === 0) {
+                    ball.owner = p;
+                    sfx.playKick();
+                }
+            });
+
+            ball.update();
+
+            teamBluePlayers.forEach((p, idx) => {
+                if (idx === controlledIdx) return;
+                updateAIPlayer(p, teamBluePlayers, teamRedPlayers, true);
+            });
+
+            teamRedPlayers.forEach(p => {
+                updateAIPlayer(p, teamRedPlayers, teamBluePlayers, false);
+            });
+
+            checkGoal();
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                if (particles[i].life <= 0) particles.splice(i, 1);
             }
         }
 
-        /* ========================================================================
-           LÓGICA AUTÓNOMA DEL NPC (IA Y MÁQUINA DE ESTADOS)
-           ======================================================================== */
-        const stateBadge = document.getElementById('npc-state-label');
+        function updateAIPlayer(p, myTeam, enemyTeam, isBlue) {
+            if (p.isGK) {
+                const goalX = isBlue ? PITCH.x + 15 : PITCH.x + PITCH.width - 15;
+                p.x = goalX;
+                const targetY = Math.max(GOAL.topY + p.radius, Math.min(GOAL.bottomY - p.radius, ball.y));
+                p.y += (targetY - p.y) * 0.1;
+                return;
+            }
 
-        function getRandomWaypoint() {
-            return new THREE.Vector3(
-                (Math.random() - 0.5) * (FIELD_BOUNDS.maxX * 1.6),
-                0,
-                (Math.random() - 0.5) * (FIELD_BOUNDS.maxZ * 1.6)
-            );
-        }
+            const params = DIFF_PARAMS[selectedDiff];
+            const distBall = Math.hypot(p.x - ball.x, p.y - ball.y);
 
-        npc.userData.target = getRandomWaypoint();
+            if (ball.owner === p) {
+                const targetGoalX = isBlue ? PITCH.x + PITCH.width : PITCH.x;
+                const dirAngle = Math.atan2(PITCH.y + PITCH.height/2 - p.y, targetGoalX - p.x);
+                p.angle = dirAngle;
+                p.vx = Math.cos(dirAngle) * params.speed * 0.8;
+                p.vy = Math.sin(dirAngle) * params.speed * 0.8;
 
-        function updateNPC(delta) {
-            const data = npc.userData;
-            data.animTime += delta;
+                if (Math.abs(p.x - targetGoalX) < 220 && Math.random() < 0.03) {
+                    executeShot(p, 70);
+                }
+            } else if (!ball.owner || enemyTeam.includes(ball.owner)) {
+                if (distBall < 180) {
+                    const angle = Math.atan2(ball.y - p.y, ball.x - p.x);
+                    p.angle = angle;
+                    p.vx = Math.cos(angle) * params.speed;
+                    p.vy = Math.sin(angle) * params.speed;
 
-            const distToTarget = npc.position.distanceTo(data.target);
-
-            if (data.state === 'WALK' || data.state === 'RUN') {
-                if (distToTarget < NPC_CONFIG.waypointThreshold) {
-                    const rand = Math.random();
-                    if (rand < 0.4) {
-                        data.state = 'GREET';
-                        data.waitTime = NPC_CONFIG.pauseDurationMin + Math.random() * 2;
-                        stateBadge.innerText = "👋 SALUDANDO A LA AFICIÓN";
-                        stateBadge.style.background = "#d97706";
-                    } else if (rand < 0.7) {
-                        data.state = 'LOOK_AROUND';
-                        data.waitTime = NPC_CONFIG.pauseDurationMin;
-                        stateBadge.innerText = "👀 OBSERVANDO EL ESTADIO";
-                        stateBadge.style.background = "#0284c7";
-                    } else {
-                        data.target = getRandomWaypoint();
-                        data.state = Math.random() > 0.5 ? 'RUN' : 'WALK';
+                    if (distBall < 30 && Math.random() < params.tackleAggro) {
+                        p.isTackling = true;
+                        p.tackleTimer = 15;
                     }
                 } else {
-                    const dir = data.target.clone().sub(npc.position).normalize();
-                    const targetAngle = Math.atan2(dir.x, dir.z);
-                    
-                    let diffAngle = targetAngle - npc.rotation.y;
-                    while (diffAngle < -Math.PI) diffAngle += Math.PI * 2;
-                    while (diffAngle > Math.PI) diffAngle -= Math.PI * 2;
-                    npc.rotation.y += diffAngle * NPC_CONFIG.rotationSpeed * delta;
-
-                    const currentSpeed = (data.state === 'RUN') ? NPC_CONFIG.runSpeed : NPC_CONFIG.walkSpeed;
-                    npc.translateZ(currentSpeed * delta);
-
-                    // Respetar límites del campo de fútbol
-                    npc.position.x = THREE.MathUtils.clamp(npc.position.x, FIELD_BOUNDS.minX, FIELD_BOUNDS.maxX);
-                    npc.position.z = THREE.MathUtils.clamp(npc.position.z, FIELD_BOUNDS.minZ, FIELD_BOUNDS.maxZ);
-
-                    // Animación de caminata y braceo natural
-                    const freq = (data.state === 'RUN') ? 12 : 7;
-                    data.leftLeg.rotation.x = Math.sin(data.animTime * freq) * 0.6;
-                    data.rightLeg.rotation.x = -Math.sin(data.animTime * freq) * 0.6;
-                    data.leftArmGroup.rotation.x = -Math.sin(data.animTime * freq) * 0.5;
-                    data.rightArmGroup.rotation.x = Math.sin(data.animTime * freq) * 0.5;
-
-                    if (data.state === 'RUN') {
-                        stateBadge.innerText = "🏃 CORRIENDO POR EL CAMPO";
-                        stateBadge.style.background = "#16a34a";
-                    } else {
-                        stateBadge.innerText = "🚶 PASEANDO TRANQUILO";
-                        stateBadge.style.background = "#b7202d";
-                    }
-                }
-            } else if (data.state === 'GREET' || data.state === 'LOOK_AROUND') {
-                data.waitTime -= delta;
-                data.leftLeg.rotation.x = 0;
-                data.rightLeg.rotation.x = 0;
-
-                if (data.state === 'GREET') {
-                    // Saludo con el brazo derecho alzado
-                    data.rightArmGroup.rotation.x = -Math.PI * 0.8;
-                    data.rightArmGroup.rotation.z = Math.sin(data.animTime * 6) * 0.2;
-                    data.leftArmGroup.rotation.x = 0;
-                    npc.rotation.y += 0.5 * delta;
-                } else if (data.state === 'LOOK_AROUND') {
-                    data.leftArmGroup.rotation.x = 0;
-                    data.rightArmGroup.rotation.x = 0;
-                    data.rightArmGroup.rotation.z = 0;
-                    data.headGroup.rotation.y = Math.sin(data.animTime * 2) * 0.6;
-                }
-
-                if (data.waitTime <= 0) {
-                    data.headGroup.rotation.y = 0;
-                    data.rightArmGroup.rotation.z = 0;
-                    data.target = getRandomWaypoint();
-                    data.state = Math.random() > 0.4 ? 'WALK' : 'RUN';
+                    p.vx = (p.startX - p.x) * 0.05;
+                    p.vy = (p.startY - p.y) * 0.05;
                 }
             }
         }
 
-        /* ========================================================================
-           FÍSICAS Y CONTROL DEL JUGADOR
-           ======================================================================== */
-        function updatePlayer(delta) {
-            const speed = keys.shift ? PLAYER_CONFIG.runSpeed : PLAYER_CONFIG.walkSpeed;
-            const pData = player.userData;
+        function executePass(p, isLob) {
+            if (ball.owner !== p) return;
+            ball.owner = null;
+            sfx.playKick();
 
-            if (keys.left) player.rotation.y += PLAYER_CONFIG.turnSpeed * delta;
-            if (keys.right) player.rotation.y -= PLAYER_CONFIG.turnSpeed * delta;
+            const passForce = isLob ? 14 : 11;
+            ball.vx = Math.cos(p.angle) * passForce;
+            ball.vy = Math.sin(p.angle) * passForce;
+            if (isLob) ball.vz = 10;
+        }
 
-            let moveDir = 0;
-            if (keys.up) moveDir = 1;
-            if (keys.down) moveDir = -0.6;
+        function executeShot(p, powerPercent) {
+            if (ball.owner !== p) return;
+            ball.owner = null;
+            sfx.playKick();
 
-            if (moveDir !== 0) {
-                player.translateZ(moveDir * speed * delta);
-                pData.animTime += delta * (keys.shift ? 14 : 8);
-                pData.leftLeg.rotation.x = Math.sin(pData.animTime) * 0.7;
-                pData.rightLeg.rotation.x = -Math.sin(pData.animTime) * 0.7;
+            const force = 12 + (powerPercent / 100) * 16;
+            ball.vx = Math.cos(p.angle) * force;
+            ball.vy = Math.sin(p.angle) * force;
+            ball.vz = 4 + (powerPercent / 100) * 8;
+
+            if (gameData.equippedPower === 'devastating' && powerActiveTimer > 0) {
+                ball.vx *= 1.5;
+                ball.vy *= 1.5;
+                spawnParticles(ball.x, ball.y, '#ef4444', 20);
+            }
+        }
+
+        function activateSpecialPower() {
+            if (powerCooldown > 0) return;
+            sfx.playPower();
+            powerCooldown = 15;
+            powerActiveTimer = 6;
+            
+            const ctrlP = teamBluePlayers[controlledIdx];
+            if (gameData.equippedPower === 'shield') ctrlP.hasShield = true;
+            if (gameData.equippedPower === 'flash') {
+                ctrlP.x += Math.cos(ctrlP.angle) * 120;
+                ctrlP.y += Math.sin(ctrlP.angle) * 120;
+                spawnParticles(ctrlP.x, ctrlP.y, '#f5d75e', 30);
+            }
+            spawnParticles(ctrlP.x, ctrlP.y, '#38bdf8', 25);
+        }
+
+        function resetActivePowers() {
+            teamBluePlayers.forEach(p => p.hasShield = false);
+        }
+
+        function updatePowerHUD() {
+            const bar = document.getElementById('power-bar');
+            if (powerActiveTimer > 0) {
+                bar.style.width = '100%';
+                bar.style.background = '#10b981';
             } else {
-                pData.leftLeg.rotation.x = 0;
-                pData.rightLeg.rotation.x = 0;
+                const pct = Math.max(0, (1 - powerCooldown / 15) * 100);
+                bar.style.width = pct + '%';
+                bar.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
             }
+        }
 
-            if (keys.space && pData.isGrounded) {
-                pData.velocity.y = PLAYER_CONFIG.jumpForce;
-                pData.isGrounded = false;
+        function checkGoal() {
+            if (ball.x < PITCH.x && ball.y > GOAL.topY && ball.y < GOAL.bottomY) {
+                scoreAway++;
+                document.getElementById('score-away').innerText = scoreAway;
+                triggerGoalBanner("🔴 ¡GOL RIVAL! 🔴");
+            } else if (ball.x > PITCH.x + PITCH.width && ball.y > GOAL.topY && ball.y < GOAL.bottomY) {
+                scoreHome++;
+                document.getElementById('score-home').innerText = scoreHome;
+                triggerGoalBanner("⚽ ¡GOOOOOOLAZO! ⚽");
             }
+        }
 
-            if (!pData.isGrounded) {
-                pData.velocity.y -= PLAYER_CONFIG.gravity * delta;
-                player.position.y += pData.velocity.y * delta;
+        function triggerGoalBanner(msg) {
+            gameState = 'GOAL';
+            sfx.playGoal();
+            spawnParticles(ball.x, ball.y, '#f5d75e', 80);
+            
+            const b = document.getElementById('banner');
+            b.innerText = msg;
+            b.classList.add('show');
 
-                if (player.position.y <= 0) {
-                    player.position.y = 0;
-                    pData.velocity.y = 0;
-                    pData.isGrounded = true;
-                }
+            setTimeout(() => {
+                b.classList.remove('show');
+                ball.reset();
+                teamBluePlayers.forEach(p => p.reset());
+                teamRedPlayers.forEach(p => p.reset());
+                gameState = 'MATCH_PLAYING';
+            }, 2500);
+        }
+
+        function spawnParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
             }
-
-            player.position.x = THREE.MathUtils.clamp(player.position.x, FIELD_BOUNDS.minX, FIELD_BOUNDS.maxX);
-            player.position.z = THREE.MathUtils.clamp(player.position.z, FIELD_BOUNDS.minZ, FIELD_BOUNDS.maxZ);
         }
 
         /* ========================================================================
-           BUCLE PRINCIPAL Y RENDIMIENTO
+           7. RENDERIZADO CANVAS
            ======================================================================== */
-        const clock = new THREE.Clock();
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = Math.min(clock.getDelta(), 0.1);
+            ctx.fillStyle = '#2e7d32';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            updateNPC(delta);
-            updatePlayer(delta);
-            updateCamera();
+            ctx.fillStyle = '#388e3c';
+            for (let i = 0; i < 10; i++) {
+                if (i % 2 === 0) {
+                    ctx.fillRect(PITCH.x + i * (PITCH.width / 10), PITCH.y, PITCH.width / 10, PITCH.height);
+                }
+            }
 
-            renderer.render(scene, camera);
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(PITCH.x, PITCH.y, PITCH.width, PITCH.height);
+
+            ctx.beginPath();
+            ctx.moveTo(PITCH.x + PITCH.width / 2, PITCH.y);
+            ctx.lineTo(PITCH.x + PITCH.width / 2, PITCH.y + PITCH.height);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(PITCH.x + PITCH.width / 2, PITCH.y + PITCH.height / 2, 70, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.strokeRect(PITCH.x, PITCH.y + 110, 120, 300);
+            ctx.strokeRect(PITCH.x + PITCH.width - 120, PITCH.y + 110, 120, 300);
+
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(PITCH.x - GOAL.depth, GOAL.topY, GOAL.depth, GOAL.height);
+            ctx.fillRect(PITCH.x + PITCH.width, GOAL.topY, GOAL.depth, GOAL.height);
+            ctx.strokeRect(PITCH.x - GOAL.depth, GOAL.topY, GOAL.depth, GOAL.height);
+            ctx.strokeRect(PITCH.x + PITCH.width, GOAL.topY, GOAL.depth, GOAL.height);
+
+            particles.forEach(p => p.draw());
+
+            teamBluePlayers.forEach((p, idx) => p.draw(idx === controlledIdx));
+            teamRedPlayers.forEach(p => p.draw(false));
+
+            ball.draw();
         }
 
-        animate();
+        function gameLoop() {
+            updateMatch();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        /* ========================================================================
+           8. MENÚS Y GESTIÓN DE PARTIDOS
+           ======================================================================== */
+        function startMatch() {
+            initMatch();
+            gameState = 'MATCH_PLAYING';
+            showScreen(null);
+        }
+
+        function togglePause() {
+            if (gameState === 'MATCH_PLAYING') {
+                gameState = 'MATCH_PAUSED';
+                showScreen('menu-pause');
+            } else if (gameState === 'MATCH_PAUSED') {
+                resumeMatch();
+            }
+        }
+
+        function resumeMatch() {
+            gameState = 'MATCH_PLAYING';
+            showScreen(null);
+        }
+
+        function quitMatch() {
+            gameState = 'MENU';
+            showScreen('menu-main');
+        }
+
+        function endMatch() {
+            gameState = 'GAME_OVER';
+            gameData.stats.played++;
+
+            const won = scoreHome > scoreAway;
+            const draw = scoreHome === scoreAway;
+
+            let earnedCoins = 30 + scoreHome * 15;
+            if (won) {
+                earnedCoins += 100;
+                gameData.stats.wins++;
+                gameData.stats.streak++;
+                document.getElementById('go-title').innerText = '🏆 ¡VICTORIA! 🏆';
+                document.getElementById('go-subtitle').innerText = '¡Gran partido masterclass!';
+            } else if (draw) {
+                earnedCoins += 40;
+                document.getElementById('go-title').innerText = '🤝 EMPATE 🤝';
+                document.getElementById('go-subtitle').innerText = 'Un duelo muy parejo';
+            } else {
+                gameData.stats.losses++;
+                gameData.stats.streak = 0;
+                document.getElementById('go-title').innerText = '💔 DERROTA 💔';
+                document.getElementById('go-subtitle').innerText = '¡A entrenar para la próxima!';
+            }
+
+            gameData.stats.goals += scoreHome;
+            gameData.coins += earnedCoins;
+            saveData();
+
+            document.getElementById('go-score').innerText = `${scoreHome} - ${scoreAway}`;
+            document.getElementById('go-coins').innerText = earnedCoins;
+            showScreen('menu-gameover');
+        }
+
+        /* ========================================================================
+           9. TIENDA DE PODERES Y EQUIPACIONES
+           ======================================================================== */
+        const POWERS = [
+            { id: 'turbo', name: '⚡ Turbo Speed', price: 0 },
+            { id: 'devastating', name: '🔥 Tiro Devastador', price: 200 },
+            { id: 'shield', name: '🛡️ Escudo Invencible', price: 300 },
+            { id: 'flash', name: '⚡ Regate Relámpago', price: 400 }
+        ];
+
+        const KITS = [
+            { id: 'blue', name: '🔵 Clásico Azul', price: 0 },
+            { id: 'gold', name: '👑 Campeón Oro', price: 250 },
+            { id: 'neon', name: '🟢 Ciber Neón', price: 350 },
+            { id: 'flame', name: '🔥 Fuego Rojo', price: 500 }
+        ];
+
+        function renderShop() {
+            const pList = document.getElementById('power-shop-list');
+            pList.innerHTML = '';
+            POWERS.forEach(p => {
+                const unlocked = gameData.unlockedPowers.includes(p.id);
+                const equipped = gameData.equippedPower === p.id;
+                pList.innerHTML += `
+                    <div class="shop-card ${unlocked ? 'unlocked' : ''} ${equipped ? 'equipped' : ''}">
+                        <b>${p.name}</b><br>
+                        <span style="font-size:12px; color:#cbd5e1;">${unlocked ? (equipped ? 'EQUIPADO' : 'DESBLOQUEADO') : '🪙 ' + p.price}</span><br>
+                        <button class="btn" style="padding:4px 10px; font-size:11px; margin-top:6px;" onclick="buyPower('${p.id}', ${p.price})">
+                            ${unlocked ? 'EQUIPAR' : 'COMPRAR'}
+                        </button>
+                    </div>
+                `;
+            });
+
+            const kList = document.getElementById('kit-shop-list');
+            kList.innerHTML = '';
+            KITS.forEach(k => {
+                const unlocked = gameData.unlockedKits.includes(k.id);
+                const equipped = gameData.equippedKit === k.id;
+                kList.innerHTML += `
+                    <div class="shop-card ${unlocked ? 'unlocked' : ''} ${equipped ? 'equipped' : ''}">
+                        <b>${k.name}</b><br>
+                        <span style="font-size:12px; color:#cbd5e1;">${unlocked ? (equipped ? 'EQUIPADO' : 'DESBLOQUEADO') : '🪙 ' + k.price}</span><br>
+                        <button class="btn" style="padding:4px 10px; font-size:11px; margin-top:6px;" onclick="buyKit('${k.id}', ${k.price})">
+                            ${unlocked ? 'EQUIPAR' : 'COMPRAR'}
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function buyPower(id, price) {
+            if (gameData.unlockedPowers.includes(id)) {
+                gameData.equippedPower = id;
+            } else if (gameData.coins >= price) {
+                gameData.coins -= price;
+                gameData.unlockedPowers.push(id);
+                gameData.equippedPower = id;
+            }
+            saveData();
+            renderShop();
+        }
+
+        function buyKit(id, price) {
+            if (gameData.unlockedKits.includes(id)) {
+                gameData.equippedKit = id;
+            } else if (gameData.coins >= price) {
+                gameData.coins -= price;
+                gameData.unlockedKits.push(id);
+                gameData.equippedKit = id;
+            }
+            saveData();
+            renderShop();
+        }
+
+        setupTouch();
+        updateDataUI();
+        renderShop();
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
